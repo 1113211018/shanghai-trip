@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CN 上海 8 天 7 夜自由行</title>
+    
+    <!-- 引入 Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        html, body {
+            height: 100%;
+            height: 100dvh;
+            overflow: hidden;
+            background-color: #f5f6f9;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 頂部 Header */
+        header {
+            background-color: #2b3856;
+            color: #ffffff;
+            padding: 10px 16px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+            z-index: 1001;
+            flex-shrink: 0;
+        }
+
+        header h1 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 2px;
+        }
+
+        header .subtitle {
+            font-size: 0.75rem;
+            color: #cbd5e1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* 主區域佈局 */
+        .main-container {
+            display: flex;
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 電腦版左側邊欄 */
+        #sidebar {
+            width: 390px;
+            background: #ffffff;
+            border-right: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            z-index: 1000;
+            box-shadow: 2px 0 8px rgba(0,0,0,0.05);
+            flex-shrink: 0;
+        }
+
+        /* 快速跳轉與篩選區 */
+        .filter-section {
+            padding: 10px;
+            border-bottom: 1px solid #f1f5f9;
+            background: #fafafa;
+        }
+
+        .select-box {
+            width: 100%;
+            padding: 8px 10px;
+            border-radius: 6px;
+            border: 1px solid #cbd5e1;
+            font-size: 0.85rem;
+            color: #334155;
+            outline: none;
+            margin-bottom: 8px;
+            background: #fff;
+        }
+
+        .day-buttons {
+            display: flex;
+            gap: 6px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .day-buttons::-webkit-scrollbar {
+            height: 4px;
+        }
+        .day-buttons::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 2px;
+        }
+
+        .btn-day {
+            border: none;
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            white-space: nowrap;
+            cursor: pointer;
+            background: #e2e8f0;
+            color: #475569;
+            transition: all 0.2s;
+        }
+
+        .btn-day.active {
+            background: #1e3a8a;
+            color: #ffffff;
+        }
+
+        /* 行程內容區 */
+        .itinerary-list {
+            flex: 1;
+            padding: 10px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* 住宿資訊卡片 */
+        .hotel-card {
+            background: #fdf2f8;
+            border: 1px solid #fbcfe8;
+            border-radius: 8px;
+            padding: 8px 10px;
+            margin-bottom: 10px;
+        }
+
+        .hotel-title {
+            font-weight: 700;
+            color: #9d174d;
+            font-size: 0.85rem;
+            margin-bottom: 4px;
+        }
+
+        .hotel-desc {
+            font-size: 0.75rem;
+            color: #831843;
+            line-height: 1.4;
+        }
+
+        /* 行程項目卡片 */
+        .spot-card {
+            background: #ffffff;
+            border: 1px solid #f1f5f9;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+            cursor: pointer;
+            transition: transform 0.15s, border-color 0.15s;
+        }
+
+        .spot-card:hover {
+            border-color: #93c5fd;
+            transform: translateY(-1px);
+        }
+
+        .time-badge {
+            display: inline-block;
+            background: #ef4444;
+            color: #ffffff;
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 12px;
+            margin-bottom: 4px;
+        }
+
+        .spot-title {
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 4px;
+        }
+
+        .spot-detail {
+            font-size: 0.78rem;
+            color: #64748b;
+            line-height: 1.4;
+        }
+
+        .traffic-tag {
+            margin-top: 6px;
+            padding-top: 6px;
+            border-top: 1px dashed #e2e8f0;
+            font-size: 0.74rem;
+            color: #2563eb;
+            font-weight: 600;
+            line-height: 1.35;
+        }
+
+        /* 右側地圖 */
+        #map {
+            flex: 1;
+            height: 100%;
+            width: 100%;
+            background: #f8f9fa;
+        }
+
+        /* 地圖 Marker 樣式 */
+        .custom-marker {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-weight: bold;
+            font-size: 11px;
+            border-radius: 50%;
+            border: 2px solid #ffffff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+        .bg-d1 { background-color: #ef4444; }
+        .bg-d2 { background-color: #2563eb; }
+        .bg-d3 { background-color: #d97706; }
+        .bg-d4 { background-color: #059669; }
+        .bg-d5 { background-color: #7c3aed; }
+        .bg-d6 { background-color: #0891b2; }
+        .bg-d7 { background-color: #e11d48; }
+
+        /* 手機版響應式 RWD 佈局 */
+        @media (max-width: 767px) {
+            .main-container {
+                flex-direction: column;
+            }
+            #map {
+                height: 42dvh;
+                flex: none;
+            }
+            #sidebar {
+                width: 100%;
+                height: 58dvh;
+                border-right: none;
+                border-top: 2px solid #cbd5e1;
+            }
+            header h1 {
+                font-size: 1rem;
+            }
+            header .subtitle {
+                font-size: 0.7rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 頂部 Header -->
+    <header>
+        <h1>✈ CN 上海 8 天 7 夜自由行</h1>
+        <div class="subtitle">11/29 - 12/5 布丁嚴選飯店（前6晚） | 12/5 - 12/6 605客艙美宿（第7晚）</div>
+    </header>
+
+    <div class="main-container">
+        <!-- 行程邊欄 -->
+        <div id="sidebar">
+            <div class="filter-section">
+                <select class="select-box" id="spotSelect" onchange="jumpToSelectedSpot(this.value)">
+                    <option value="">🎯 快速跳轉至景點/美食...</option>
+                </select>
+
+                <div class="day-buttons">
+                    <button class="btn-day active" onclick="filterDay('all', this)">全部路線</button>
+                    <button class="btn-day" onclick="filterDay('D1', this)">Day 1</button>
+                    <button class="btn-day" onclick="filterDay('D2', this)">Day 2</button>
+                    <button class="btn-day" onclick="filterDay('D3', this)">Day 3</button>
+                    <button class="btn-day" onclick="filterDay('D4', this)">Day 4</button>
+                    <button class="btn-day" onclick="filterDay('D5', this)">Day 5</button>
+                    <button class="btn-day" onclick="filterDay('D6', this)">Day 6</button>
+                    <button class="btn-day" onclick="filterDay('D7', this)">Day 7</button>
+                </div>
+            </div>
+
+            <div class="itinerary-list" id="itineraryContainer">
+                <div class="hotel-card">
+                    <div class="hotel-title">🏨 布丁嚴選飯店（上海田子坊馬當路地鐵站店）</div>
+                    <div class="hotel-desc">
+                        📍 入住：11/29 - 12/5 (前6晚)<br>
+                        🚅 交通：浦東機場搭乘<b>磁浮列車</b>至「龍陽路站」➔ 換 2號線至「南京東路站」➔ 換 10號線至「新天地站」➔ 換 13號線至「馬當路站」
+                    </div>
+                </div>
+
+                <div class="hotel-card">
+                    <div class="hotel-title">🏨 605客艙美宿（上海浦東國際機場店）</div>
+                    <div class="hotel-desc">
+                        📍 入住：12/5 - 12/6 (第7晚)<br>
+                        🚇 交通：免費專車接送至機場搭乘隔日(12/6)早班機返台
+                    </div>
+                </div>
+
+                <hr style="border:0; border-top:1px solid #e2e8f0; margin:8px 0;">
+
+                <div id="cardsList"></div>
+            </div>
+        </div>
+
+        <!-- 地圖呈現區 -->
+        <div id="map"></div>
+    </div>
+
+    <!-- 引入 Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // 行程資料庫
+        const itineraryData = [
+            // Day 1
+            { 
+                day: "D1", time: "Day 1 (11/29) | 11:30", title: "抵達浦東機場 ➔ 飯店 Check-in", lat: 31.2065, lng: 121.4768, 
+                desc: "辦理入住或寄放行李（布丁嚴選飯店）", 
+                traffic: "🚅 磁浮列車「浦東國際機場」➔「龍陽路站」（8分鐘）➔ 換 2號線至「南京東路站」➔ 換 10號線至「新天地站」➔ 換 13號線至「馬當路站」" 
+            },
+            { 
+                day: "D1", time: "Day 1 (11/29) | 13:30", title: "田子坊 ＋ 思南路歷史街區", lat: 31.2090, lng: 121.4690, 
+                desc: "飯店步行即可到達！漫步田子坊弄堂、思南公館與思南書局", 
+                traffic: "🚶 從飯店步行約 8-10 分鐘即達" 
+            },
+            { 
+                day: "D1", time: "Day 1 (11/29) | 16:30", title: "南京路步行街", lat: 31.2355, lng: 121.4760, 
+                desc: "由西往東：新世界大丸 ➔ 三麗鷗 ➔ Miniso全球一號店 ➔ 第一食品 ➔ 世茂莫格", 
+                traffic: "🚇 13號線「馬當路站」➔「南京西路站」（搭 3 站，約 8 分鐘）" 
+            },
+            { 
+                day: "D1", time: "Day 1 (11/29) | 21:00", title: "外灘萬國建築群夜景", lat: 31.2397, lng: 121.4998, 
+                desc: "漫步外灘觀景平台，欣賞黃浦江兩岸天際線與黃金燈光秀（熄燈時間約 22:00）", 
+                traffic: "🚶 從南京東路步行約 10 分鐘即達" 
+            },
+
+            // Day 2
+            { 
+                day: "D2", time: "Day 2 (11/30) | 09:30", title: "朱家角古鎮（江南水鄉）", lat: 31.1118, lng: 121.0535, 
+                desc: "放生橋、課植園、大清郵局，品嚐茂蓀館/阿婆粽", 
+                traffic: "🚇 13號線「馬當路站」➔「漢中路站」換 17號線直達「朱家角站」，再計程車 5 分鐘" 
+            },
+            { 
+                day: "D2", time: "Day 2 (11/30) | 14:00", title: "泰晤士小鎮（松江英倫小鎮）", lat: 31.0334, lng: 121.1981, 
+                desc: "歐式建築群、鍾書閣總店打卡、湖畔咖啡館散步", 
+                traffic: "🚕 從朱家角直接叫車往泰晤士小鎮（約 30 分鐘，合搭最省時）" 
+            },
+
+            // Day 3
+            { 
+                day: "D3", time: "Day 3 (12/1) | 08:30", title: "黃河路炭水一條街", lat: 31.2375, lng: 121.4708, 
+                desc: "早上享用小楊生煎、排骨年糕，順利排隊購買國際飯店剛出爐的蝴蝶酥！", 
+                traffic: "🚇 13號線「馬當路站」➔「南京西路站」換 1號線 ➔「人民廣場站」（8號口出，步行 3 分鐘）" 
+            },
+            { 
+                day: "D3", time: "Day 3 (12/1) | 10:30", title: "愚園路歷史街區", lat: 31.2215, lng: 121.4320, 
+                desc: "百年梧桐 ＋ ART DECO 洋房 ＋ 公共市集 ＋ 故事商店", 
+                traffic: "🚇 2號線「人民廣場站」➔「江蘇路站」（搭 4 站，約 10 分鐘）" 
+            },
+            { 
+                day: "D3", time: "Day 3 (12/1) | 13:00", title: "龍華寺 ＋ 龍華塔", lat: 31.1772, lng: 121.4505, 
+                desc: "門票 ¥10（可抵香火錢），品嚐有名素齋麵與午後參拜祈福", 
+                traffic: "🚇 11號線「江蘇路站」➔「龍華站」（搭 5 站，約 12 分鐘），2號口出步行 3 分鐘" 
+            },
+            { 
+                day: "D3", time: "Day 3 (12/1) | 17:30", title: "海金滋（進賢路店）", lat: 31.2235, lng: 121.4590, 
+                desc: "米其林必比登推薦本幫菜晚餐（醬鴨、蟹粉蛋）", 
+                traffic: "🚇 11號線「龍華站」➔「交通大學站」換 10號線 ➔「陝西南路站」（共 4 站），步行 5 分鐘" 
+            },
+            { 
+                day: "D3", time: "Day 3 (12/1) | 19:30", title: "七浦路服裝市場", lat: 31.2468, lng: 121.4845, 
+                desc: "服裝批發淘寶、感受夜間熱鬧市集氣氛", 
+                traffic: "🚇 10號線「陝西南路站」➔「天潼路站」（搭 4 站），6號口出步行 3 分鐘" 
+            },
+
+            // Day 4
+            { 
+                day: "D4", time: "Day 4 (12/2) | 09:30", title: "光明邨大酒家 ＋ 哈爾濱食品廠", lat: 31.2190, lng: 121.4630, 
+                desc: "品嚐經典鮮肉月餅與海派糕點", 
+                traffic: "🚇 13號線「馬當路站」➔「淮海中路站」（搭 1 站），1號口出步行 5 分鐘" 
+            },
+            { 
+                day: "D4", time: "Day 4 (12/2) | 11:00", title: "武康大樓 ＋ 武康路 ＋ 安福路", lat: 31.1998, lng: 121.4425, 
+                desc: "上海打卡地標，網紅咖啡與洋房街區散步", 
+                traffic: "🚇 10號線「陝西南路站」➔「交通大學站」（搭 2 站），7號口出步行 5 分鐘到武康大樓" 
+            },
+            { 
+                day: "D4", time: "Day 4 (12/2) | 15:00", title: "張園 ＋ 新天地", lat: 31.2285, lng: 121.4595, 
+                desc: "百年石庫門建築群改建之精品商業區", 
+                traffic: "🚇 10號線「交通大學站」➔「南京西路站」（搭 3 站），12號口直達張園" 
+            },
+
+            // Day 5
+            { 
+                day: "D5", time: "Day 5 (12/3) | 09:30", title: "豫園 ＋ 城隍廟 ＋ 福佑門", lat: 31.2272, lng: 121.4922, 
+                desc: "江南園林巡禮，福佑門市場淘¥5冰箱貼", 
+                traffic: "🚇 10號線「新天地站」➔「豫園站」（搭 2 站），1號口出步行 5 分鐘" 
+            },
+            { 
+                day: "D5", time: "Day 5 (12/3) | 12:00", title: "李百蟹·蟹黃麵（外灘店）", lat: 31.2305, lng: 121.4965, 
+                desc: "外灘 22號觀景餐廳，提前預訂窗邊位看江景", 
+                traffic: "🚶 從豫園/福佑門步行約 8-10 分鐘（往外灘方向）" 
+            },
+            { 
+                day: "D5", time: "Day 5 (12/3) | 14:30", title: "東方明珠 ＋ 朵雲書院", lat: 31.2397, lng: 121.4998, 
+                desc: "陸家嘴地標巡禮，登上海中心 52樓朵雲書院看雲端市景", 
+                traffic: "🚇 10號線「豫園站」➔「南京東路站」換 2號線 ➔「陸家嘴站」（共 2 站），1號口出" 
+            },
+            { 
+                day: "D5", time: "Day 5 (12/3) | 18:00", title: "東盛燒烤（悅薈廣場店）", lat: 31.2372, lng: 121.4785, 
+                desc: "位於南京東路悅薈廣場 5樓，平日晚上用餐避開假日人潮！極高 CP 值自助燒烤", 
+                traffic: "🚇 2號線「陸家嘴站」➔「南京東路站」（搭 1 站），出站步行 3 分鐘" 
+            },
+
+            // Day 6
+            { 
+                day: "D6", time: "Day 6 (12/4) | 11:30", title: "前灘太古里", lat: 31.1568, lng: 121.4770, 
+                desc: "Open-air 露天精品商場，享受精緻街區、午餐與購物散步", 
+                traffic: "🚇 13號線「馬當路站」➔「成山路站」換 8號線 ➔「東方體育中心站」（2號口出）" 
+            },
+            { 
+                day: "D6", time: "Day 6 (12/4) | 16:00", title: "淮海中路商圈 / 自由補購物", lat: 31.2180, lng: 121.4650, 
+                desc: "享受悠閒午後，補買伴手禮或至網紅咖啡館休息備用時間", 
+                traffic: "🚇 8號線「東方體育中心站」➔「陸家浜路站」換 13號線 ➔「淮海中路站」" 
+            },
+
+            // Day 7
+            { 
+                day: "D7", time: "Day 7 (12/5) | 09:30", title: "新場古鎮（原汁原味江南水鄉）", lat: 31.0028, lng: 121.6508, 
+                desc: "《色戒》取景地！漫步洪福橋、三道牌樓，品嚐新場海鮮麵、海棠糕與竹筍湯包", 
+                traffic: "🚇 13號線「馬當路站」➔「華夏中路站」換 16號線 ➔「新場站」，換乘公車/計程車 5 分鐘" 
+            },
+            { 
+                day: "D7", time: "Day 7 (12/5) | 14:00", title: "高達基地（金橋啦啦寶都店）", lat: 31.2549, lng: 121.5995, 
+                desc: "朝聖 1:1 實物大自由高達立像與官方周邊 Flagship Store", 
+                traffic: "🚇 16號線「新場站」➔「羅山路站」換 11號線 ➔「東方體育中心站」換 6號線 ➔「巨峰路站」換 12號線 ➔「台兒莊路站」" 
+            },
+            { 
+                day: "D7", time: "Day 7 (12/5) | 18:00", title: "轉移至機場飯店 Check-in", lat: 31.1550, lng: 121.7280, 
+                desc: "入住 605客艙美宿，收拾行李、好好休息準備明日早班機返台", 
+                traffic: "🚇 12號線「台兒莊路站」➔「金吉路站」換 9號線 ➔「世紀大道站」換 2號線 ➔「浦東國際機場站」，聯繫飯店免費專車接駁" 
+            },
+
+            // Day 8
+            { 
+                day: "D7", time: "Day 8 (12/6) | 07:00", title: "飯店免費專車接駁 ➔ 浦東國際機場（返台）", lat: 31.1443, lng: 121.8083, 
+                desc: "搭乘飯店專車至機場，辦理登機手續、託運行李、逛日上免稅店後順利返台！", 
+                traffic: "🚐 飯店免費專車接送（入住時向櫃檯預約時間）" 
+            }
+        ];
+
+        // 初始化地圖
+        const map = L.map('map', {
+            zoomControl: true,
+            attributionControl: false
+        }).setView([31.210, 121.470], 11);
+
+        // 高德地圖圖資
+        const baseLayer = L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}', {
+            maxZoom: 18,
+            subdomains: '1234'
+        }).addTo(map);
+
+        let markersLayer = L.layerGroup().addTo(map);
+        let polylineLayer = L.layerGroup().addTo(map);
+
+        function initApp() {
+            const cardsContainer = document.getElementById('cardsList');
+            const selectBox = document.getElementById('spotSelect');
+            
+            cardsContainer.innerHTML = '';
+            
+            itineraryData.forEach((spot, index) => {
+                const opt = document.createElement('option');
+                opt.value = index;
+                opt.textContent = `[${spot.day}] ${spot.title}`;
+                selectBox.appendChild(opt);
+
+                const card = document.createElement('div');
+                card.className = `spot-card day-item-${spot.day}`;
+                card.onclick = () => focusMapSpot(spot.lat, spot.lng, spot.title);
+
+                card.innerHTML = `
+                    <div class="time-badge">${spot.time}</div>
+                    <div class="spot-title">${spot.title}</div>
+                    <div class="spot-detail">${spot.desc}</div>
+                    <div class="traffic-tag">${spot.traffic}</div>
+                `;
+                cardsContainer.appendChild(card);
+            });
+
+            renderMapMarkers('all');
+        }
+
+        function renderMapMarkers(filterDay) {
+            markersLayer.clearLayers();
+            polylineLayer.clearLayers();
+
+            const filteredData = filterDay === 'all' 
+                ? itineraryData 
+                : itineraryData.filter(s => s.day === filterDay);
+
+            const coordsByDay = {};
+
+            filteredData.forEach(spot => {
+                const customIcon = L.divIcon({
+                    className: '',
+                    html: `<div class="custom-marker bg-${spot.day.toLowerCase()}">${spot.day}</div>`,
+                    iconSize: [26, 26],
+                    iconAnchor: [13, 13]
+                });
+
+                const marker = L.marker([spot.lat, spot.lng], { icon: customIcon });
+                marker.bindPopup(`<b>${spot.time}</b><br><b>${spot.title}</b><br>${spot.desc}<br><small style="color:#2563eb">${spot.traffic}</small>`);
+                markersLayer.addLayer(marker);
+
+                if (!coordsByDay[spot.day]) coordsByDay[spot.day] = [];
+                coordsByDay[spot.day].push([spot.lat, spot.lng]);
+            });
+
+            const colors = { D1: '#ef4444', D2: '#2563eb', D3: '#d97706', D4: '#059669', D5: '#7c3aed', D6: '#0891b2', D7: '#e11d48' };
+            Object.keys(coordsByDay).forEach(d => {
+                if (coordsByDay[d].length > 1) {
+                    const line = L.polyline(coordsByDay[d], {
+                        color: colors[d] || '#3388ff',
+                        weight: 3.5,
+                        opacity: 0.85
+                    });
+                    polylineLayer.addLayer(line);
+                }
+            });
+
+            if (filteredData.length > 0 && filterDay !== 'all') {
+                const bounds = L.latLngBounds(filteredData.map(s => [s.lat, s.lng]));
+                map.fitBounds(bounds, { padding: [30, 30] });
+            } else if (filterDay === 'all') {
+                map.setView([31.210, 121.470], 11);
+            }
+        }
+
+        function filterDay(day, btn) {
+            document.querySelectorAll('.btn-day').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            const allCards = document.querySelectorAll('.spot-card');
+            allCards.forEach(card => {
+                if (day === 'all' || card.classList.contains(`day-item-${day}`)) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+
+            renderMapMarkers(day);
+        }
+
+        function focusMapSpot(lat, lng, title) {
+            map.flyTo([lat, lng], 15, { duration: 1.2 });
+        }
+
+        function jumpToSelectedSpot(index) {
+            if (index === "") return;
+            const spot = itineraryData[index];
+            focusMapSpot(spot.lat, spot.lng, spot.title);
+        }
+
+        initApp();
+    </script>
+</body>
+</html>
